@@ -63,9 +63,11 @@ def combined_loss(x, out, cd_weight=0.5, nll_weight=0.5):
 
     nll = nll_loss(pointsx, pointsout, labelsx, labelsout)
     logging.debug(f"NLLLoss: {nll.detach().cpu().item()}")
+    print(f"NLLLoss: {nll.detach().cpu().item()}")
 
     cd = cd_loss(pointsx, pointsout)
     logging.debug(f"Chamfer distance: {cd.detach().cpu().item()}")
+    print(f"Chamfer distance: {cd.detach().cpu().item()}")
 
     return cd_weight * cd + nll_weight * nll
 
@@ -94,21 +96,20 @@ def nll_loss(pointsx, pointsout, labelsx, labelsout):
     return loss
 
 def cd_loss(pointsx, pointsout):
+    device = pointsx.device
     batch_size = pointsx.size()[0]
-    chamfer_distances = []
+    chamfer_distance = torch.tensor(0.0, device=device)
 
     for i in range(batch_size):
         pointsout_i = pointsout[i].T
         pointsx_i = pointsx[i].T
-        dist_out_x = torch.cdist(pointsout_i.unsqueeze(0), pointsx_i.unsqueeze(0))
-        dist_x_out = torch.cdist(pointsx_i.unsqueeze(0), pointsout_i.unsqueeze(0))
+        distances = torch.cdist(pointsout_i.unsqueeze(0), pointsx_i.unsqueeze(0))
 
-        min_dist_out_x = torch.min(dist_out_x, dim=-1)
-        min_dist_x_out = torch.min(dist_x_out, dim=-1)
+        min_dist_out_x = torch.min(distances, dim=1).values.squeeze()
+        min_dist_x_out = torch.min(distances, dim=2).values.squeeze()
 
-        chamfer_distance = torch.mean(min_dist_out_x) + torch.mean(min_dist_x_out)
-        chamfer_distances.append(chamfer_distance)
-    return torch.stack(chamfer_distances)
+        chamfer_distance += torch.mean(min_dist_out_x) + torch.mean(min_dist_x_out)
+    return chamfer_distance
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
