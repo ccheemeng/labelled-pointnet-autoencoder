@@ -66,14 +66,14 @@ def combined_loss(x, out, cd_weight=0.5, nll_weight=0.5):
     logging.debug(f"NLLLoss: {nll.detach().cpu().item()}")
 
     chamferDist = chamferdist.ChamferDistance()
-    cd = chamferDist(pointsout.transpose(1, 2), pointsx.transpose(1, 2))
+    cd = chamferDist(pointsx, pointsout)
     logging.debug(f"Chamfer distance: {cd.detach().cpu().item()}")
 
     return cd_weight * cd + nll_weight * nll
 
 def nll_loss(pointsx, pointsout, labelsx, labelsout):
     device = pointsx.device
-    batch_size, _, n = pointsx.size()
+    batch_size = pointsx.size()[0]
     loss = torch.tensor(0.0, device=device)
     nllLoss = torch.nn.NLLLoss()
 
