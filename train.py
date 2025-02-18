@@ -25,7 +25,8 @@ def main(args):
         dataset,
         batch_size=args.batch_size,
         shuffle=True,
-        num_workers=args.num_workers
+        num_workers=args.num_workers,
+        drop_last=True
     )
     n = dataset.getN()
     model = LabelledPointNetAE(n, args.num_classes).to(args.device)
