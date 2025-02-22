@@ -1,5 +1,5 @@
-import chamferdist
 import faiss
+import pytorch3d.loss
 import torch
 from tqdm import tqdm
 
@@ -70,8 +70,7 @@ def combined_loss(x, out, cd_weight=0.5, nll_weight=0.5):
     nll = nll_loss(pointsx, pointsout, labelsx, labelsout)
     logging.debug(f"NLLLoss: {nll.detach().cpu().item()}")
 
-    chamferDist = chamferdist.ChamferDistance(batch_reduction="sum")
-    cd = chamferDist(pointsx, pointsout)
+    cd = pytorch3d.loss.chamfer_distance(pointsx.transpose(1, 2), pointsout.transpose(1, 2), batch_reduction="sum")
     logging.debug(f"Chamfer distance: {cd.detach().cpu().item()}")
 
     return cd_weight * cd + nll_weight * nll
@@ -168,6 +167,12 @@ if __name__ == "__main__":
         "--name",
         default="train",
         type=str,
+        required=False
+    )
+    parser.add_argument(
+        "--save-freq",
+        default=50,
+        type=int,
         required=False
     )
     args = parser.parse_args()

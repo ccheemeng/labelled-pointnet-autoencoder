@@ -4,4 +4,5 @@ WORKDIR /app
 
 RUN apt-get update &&\
     pip3 install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu &&\
-    pip install --no-cache-dir chamferdist faiss-cpu pandas tqdm
+    pip install "git+https://github.com/facebookresearch/pytorch3d.git" &&\
+    pip install --no-cache-dir  faiss-cpu pandas tqdm
