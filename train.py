@@ -15,6 +15,9 @@ from pathlib import Path
 def main(args):
     output_dir = os.path.join("runs", args.name)
     Path(output_dir).mkdir(exist_ok=True, parents=True)
+    with open(os.path.join(output_dir, f"{args.name}.hyperparameters"), 'w') as fp:
+        json.dump(vars(args), fp)
+    
     logger = logging.getLogger(__name__)
     logging.basicConfig(filename=os.path.join(output_dir, f"{args.name}.log"),
                         level=logging.NOTSET)
@@ -48,12 +51,13 @@ def main(args):
             loss.backward()
             optimiser.step()
         logging.info(f"Epoch {i} complete.\tAverage loss: {total_loss / len(loader)}")
+        if i % args.save_freq == 0:        
+            torch.save(model.state_dict(), os.path.join(output_dir, f"{i}-model-state-dict.pt"))
+            torch.save(optimiser.state_dict(), os.path.join(output_dir, f"{i}-optimiser-state-dict.pt"))
         i += 1
         curr_loss = total_loss
     logging.info("Training complete.")
 
-    with open(os.path.join(output_dir, f"{args.name}.hyperparameters"), 'w') as fp:
-        json.dump(vars(args), fp)
     torch.save(model.state_dict(), os.path.join(output_dir, "model-state-dict.pt"))
     torch.save(optimiser.state_dict(), os.path.join(output_dir, "optimiser-state-dict.pt"))
 
@@ -66,7 +70,7 @@ def combined_loss(x, out, cd_weight=0.5, nll_weight=0.5):
     nll = nll_loss(pointsx, pointsout, labelsx, labelsout)
     logging.debug(f"NLLLoss: {nll.detach().cpu().item()}")
 
-    chamferDist = chamferdist.ChamferDistance()
+    chamferDist = chamferdist.ChamferDistance(batch_reduction="sum")
     cd = chamferDist(pointsx, pointsout)
     logging.debug(f"Chamfer distance: {cd.detach().cpu().item()}")
 
@@ -76,7 +80,7 @@ def nll_loss(pointsx, pointsout, labelsx, labelsout):
     device = pointsx.device
     batch_size = pointsx.size()[0]
     loss = torch.tensor(0.0, device=device)
-    nllLoss = torch.nn.NLLLoss()
+    nllLoss = torch.nn.NLLLoss(reduction="sum")
 
     for i in range(batch_size):
         pointsout_i = pointsout[i].T.detach().cpu().numpy()

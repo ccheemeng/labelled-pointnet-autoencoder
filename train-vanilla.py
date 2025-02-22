@@ -14,6 +14,9 @@ from pathlib import Path
 def main(args):
     output_dir = os.path.join("runs", args.name)
     Path(output_dir).mkdir(exist_ok=True, parents=True)
+    with open(os.path.join(output_dir, f"{args.name}.hyperparameters"), 'w') as fp:
+        json.dump(vars(args), fp)
+    
     logger = logging.getLogger(__name__)
     logging.basicConfig(filename=os.path.join(output_dir, f"{args.name}.log"),
                         level=logging.NOTSET)
@@ -42,19 +45,19 @@ def main(args):
             x = batch.to(args.device)
             out = model(x)
             loss = combined_loss(x, out)
-            logging.debug(f"Loss: {loss}")
             total_loss += loss.item()
             loss.backward()
             optimiser.step()
         logging.info(f"Epoch {i} complete.\tAverage loss: {total_loss / len(loader)}")
+        if i % args.save_freq == 0:        
+            torch.save(model.state_dict(), os.path.join(output_dir, f"{i}-model-state-dict.pt"))
+            torch.save(optimiser.state_dict(), os.path.join(output_dir, f"{i}-optimiser-state-dict.pt"))
         i += 1
         curr_loss = total_loss
     logging.info("Training complete.")
 
-    with open(os.path.join(output_dir, f"{args.name}.hyperparameters"), 'w') as fp:
-        json.dump(vars(args), fp)
-    torch.save(model.state_dict(), os.path.join(output_dir, "model-state-dict.pt"))
-    torch.save(optimiser.state_dict(), os.path.join(output_dir, "optimiser-state-dict.pt"))
+    torch.save(model.state_dict(), os.path.join(output_dir, "best-model-state-dict.pt"))
+    torch.save(optimiser.state_dict(), os.path.join(output_dir, "best-optimiser-state-dict.pt"))
 
 def combined_loss(x, out, cd_weight=0.5, nll_weight=0.5):
     pointsx = x[:, :3, :]
@@ -64,11 +67,9 @@ def combined_loss(x, out, cd_weight=0.5, nll_weight=0.5):
 
     nll = nll_loss(pointsx, pointsout, labelsx, labelsout)
     logging.debug(f"NLLLoss: {nll.detach().cpu().item()}")
-    print(f"NLLLoss: {nll.detach().cpu().item()}")
 
     cd = cd_loss(pointsx, pointsout)
     logging.debug(f"Chamfer distance: {cd.detach().cpu().item()}")
-    print(f"Chamfer distance: {cd.detach().cpu().item()}")
 
     return cd_weight * cd + nll_weight * nll
 
@@ -76,7 +77,7 @@ def nll_loss(pointsx, pointsout, labelsx, labelsout):
     device = pointsx.device
     batch_size = pointsx.size()[0]
     loss = torch.tensor(0.0, device=device)
-    nllLoss = torch.nn.NLLLoss()
+    nllLoss = torch.nn.NLLLoss(reduction="sum")
 
     for i in range(batch_size):
         pointsout_i = pointsout[i].T.detach().cpu().numpy()
@@ -109,7 +110,7 @@ def cd_loss(pointsx, pointsout):
         min_dist_out_x = torch.min(distances, dim=1).values.squeeze()
         min_dist_x_out = torch.min(distances, dim=2).values.squeeze()
 
-        chamfer_distance += torch.mean(min_dist_out_x) + torch.mean(min_dist_x_out)
+        chamfer_distance += (torch.sum(min_dist_out_x) + torch.sum(min_dist_x_out)) / 2
     return chamfer_distance
 
 if __name__ == "__main__":
@@ -180,6 +181,12 @@ if __name__ == "__main__":
         "--name",
         default="train",
         type=str,
+        required=False
+    )
+    parser.add_argument(
+        "--save-freq",
+        default=50,
+        type=int,
         required=False
     )
     args = parser.parse_args()
