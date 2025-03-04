@@ -46,9 +46,10 @@ def main(args):
         for batch in tqdm(loader):
             optimiser.zero_grad()
             x = batch.to(args.device)
-            out = model(x)
-            loss = combined_loss(x, out)
-            logging.debug(f"Loss: {loss}")
+            points, labels, _ = model(x[:, :3, :])
+            loss = combined_loss(x, points, labels,
+                                 cd_weight=args.cd_weight,
+                                 nll_weight=args.nll_weight)
             total_loss += loss.item()
             loss.backward()
             optimiser.step()
@@ -57,18 +58,18 @@ def main(args):
         if i % args.save_freq == 0:        
             torch.save(model.state_dict(), os.path.join(output_dir, f"{i}-model-state-dict.pt"))
             torch.save(optimiser.state_dict(), os.path.join(output_dir, f"{i}-optimiser-state-dict.pt"))
+            torch.save(scheduler.state_dict(), os.path.join(output_dir, f"{i}-scheduler-state-dict.pt"))
         i += 1
         curr_loss = total_loss
     logging.info("Training complete.")
 
-    torch.save(model.state_dict(), os.path.join(output_dir, "model-state-dict.pt"))
-    torch.save(optimiser.state_dict(), os.path.join(output_dir, "optimiser-state-dict.pt"))
+    torch.save(model.state_dict(), os.path.join(output_dir, "best-model-state-dict.pt"))
+    torch.save(optimiser.state_dict(), os.path.join(output_dir, "best-optimiser-state-dict.pt"))
+    torch.save(scheduler.state_dict(), os.path.join(output_dir, "best-scheduler-state-dict.pt"))
 
-def combined_loss(x, out, cd_weight=0.5, nll_weight=0.5):
+def combined_loss(x, pointsout, labelsout, cd_weight=0.5, nll_weight=0.5):
     pointsx = x[:, :3, :]
-    pointsout = out[:, :3, :]
     labelsx = x[:, 3:, :]
-    labelsout = out[:, 3:, :]
 
     nll = nll_loss(pointsx, pointsout, labelsx, labelsout)
     logging.debug(f"NLLLoss: {nll.detach().cpu().item()}")
