@@ -34,6 +34,8 @@ def main(args):
     n = dataset.getN()
     model = LabelledPointNetAE(n, args.num_classes).to(args.device)
     optimiser = torch.optim.Adam(model.parameters(), lr=args.lr)
+    lr_lambda = lambda e: 1.0 - max(0, e - 0.5 * args.num_epochs) / (0.5 * args.num_epochs)
+    scheduler = torch.optim.lr_scheduler.LambdaLR(optimiser, lr_lambda=lr_lambda)
 
     logging.info("Training...")
     model.train()
@@ -50,6 +52,7 @@ def main(args):
             total_loss += loss.item()
             loss.backward()
             optimiser.step()
+        scheduler.step()
         logging.info(f"Epoch {i} complete.\tAverage loss: {total_loss / len(loader)}")
         if i % args.save_freq == 0:        
             torch.save(model.state_dict(), os.path.join(output_dir, f"{i}-model-state-dict.pt"))
