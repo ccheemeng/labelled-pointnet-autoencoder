@@ -1,0 +1,12 @@
+#!/bin/bash
+#PBS -N labelled-pointnet-autoencoder-2025-03-04
+#PBS -l select=1:ngpus=1
+#PBS -l walltime=168:00:00
+
+cd $PBS_O_WORKDIR
+
+image=/app1/common/singularity-img/hopper/pytorch/pytorch_2.4.0a0-cuda_12.5.0_ngc_24.06.sif
+
+singularity exec $image bash << EOF > stdout.$PBS_JOBID 2> stderr.$PBS_JOBID
+
+python train-vanilla.py --dir data/beautyworld-train -c 19 --max-points 16384 --cd-weight 0.95 --nll-weight 0.05 -d cuda --lr 1E-5 -b 10 -e 1000 --name hpc-2025-03-04
