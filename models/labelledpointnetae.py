@@ -20,7 +20,6 @@ class LabelledPointNetAE(torch.nn.Module):
         x1, _ = self.encoder1(x)
         points = self.decoder(x1)
         global_feature, local_feature = self.encoder2(points)
-        print(global_feature.view(-1, 1024, 1).repeat(1, 1, self.n).size())
         x2 = torch.cat((global_feature.view(-1, 1024, 1).repeat(1, 1, self.n), local_feature), dim=1)
         labels = self.segmenter(x2)
         return torch.reshape(points, (batch_size, 3, self.n)), labels, x1

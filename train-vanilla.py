@@ -71,10 +71,10 @@ def combined_loss(x, pointsout, labelsout, cd_weight=0.5, nll_weight=0.5):
     labelsx = x[:, 3:, :]
 
     nll = nll_loss(pointsx, pointsout, labelsx, labelsout)
-    logging.debug(f"NLLLoss: {nll.detach().cpu().item()}")
+    logging.debug(f"NLLLoss: {nll.detach().cpu().item()} * {nll_weight} = {nll.detach().cpu().item() * nll_weight}")
 
     cd = cd_loss(pointsx, pointsout)
-    logging.debug(f"Chamfer distance: {cd.detach().cpu().item()}")
+    logging.debug(f"Chamfer distance: {cd.detach().cpu().item()} * {cd_weight} = {cd.detach().cpu().item() * cd_weight}")
 
     return cd_weight * cd + nll_weight * nll
 
