@@ -13,5 +13,4 @@ RUN apt-get update &&\
     apt-get -y install cuda-toolkit-12-8 &&\
     apt-get -y install cudnn &&\
     pip3 install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu126 &&\
-    pip install "git+https://github.com/facebookresearch/pytorch3d.git" &&\
     pip install --no-cache-dir faiss-cpu pandas tqdm
