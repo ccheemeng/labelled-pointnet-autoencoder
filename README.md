@@ -6,7 +6,6 @@ Utilising [PointNet](https://arxiv.org/abs/1612.00593) architectures, the model 
 
 ## Requirements  
 
-For HPC training and local inference, ensure the following dependencies are installed:  
 * The appropriate PyTorch version (see instructions from https://pytorch.org/)  
 * ```faiss-cpu```  
 * ```pandas >= 2.0.0```  
@@ -46,10 +45,6 @@ For training on HPC, transfer the following files and directories into the targe
 * ```train-vanilla.py``` (or ```train.py``` if the system supports installing PyTorch3D)  
 
 A sample job script ```train.pbs``` is provided.  
-
-### Local inference  
-
-```encode.ipynb``` and ```eval.ipynb``` have been provided for to encode and evaluate a labelled point cloud respectively.  
 
 ### Arguments  
 
