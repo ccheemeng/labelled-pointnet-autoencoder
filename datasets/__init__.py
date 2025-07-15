@@ -1,1 +1,1 @@
-from datasets.labelledpointclouddataset import LabelledPointCloudDataset
+from .labelledpointclouddataset import LabelledPointCloudDataset
